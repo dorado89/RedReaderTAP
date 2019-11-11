@@ -19,6 +19,9 @@ package org.quantumbadger.redreader;
 
 import android.app.Application;
 import android.os.Environment;
+import android.os.Handler;
+import android.os.HandlerThread;
+import android.os.Looper;
 import android.util.Log;
 import org.quantumbadger.redreader.cache.CacheManager;
 import org.quantumbadger.redreader.common.Alarms;
@@ -29,6 +32,7 @@ import org.quantumbadger.redreader.reddit.prepared.RedditChangeDataManager;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.PrintWriter;
+import java.util.Map;
 import java.util.UUID;
 
 public class RedReader extends Application {
@@ -37,6 +41,10 @@ public class RedReader extends Application {
 	public void onCreate() {
 
 		super.onCreate();
+		HandlerThread handlerThread = new HandlerThread("MyHandlerThread");
+		handlerThread.start();
+		Looper looper = handlerThread.getLooper();
+		Handler handler = new Handler(looper);
 
 		Log.i("RedReader", "Application created.");
 
@@ -90,5 +98,27 @@ public class RedReader extends Application {
 		Alarms.onBoot(this);
 
 		NewMessageChecker.checkForNewMessages(this);
+		handler.post(new Runnable() {
+			@Override
+			public void run() {
+				final String TAG = "TAP";
+				Map<Thread, StackTraceElement[]> allStackTraces = Thread.getAllStackTraces();
+				String allStackTrace = "";
+				for (StackTraceElement[] value : allStackTraces.values()) {
+					if (value.length != 0) {
+						for (int i = 0; i < value.length; i++) {
+							allStackTrace+="Method from ["+value[i].getClassName()+"]: "+value[i].getMethodName()+"\n";
+						}
+					}
+				}
+				Log.i(TAG, allStackTrace);
+				try {
+					Thread.sleep(5000);
+					run();
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
+			}
+		});
 	}
 }
