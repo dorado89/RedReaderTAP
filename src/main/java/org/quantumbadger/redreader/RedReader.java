@@ -23,6 +23,8 @@ import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Looper;
 import android.util.Log;
+
+import org.apache.commons.io.FileUtils;
 import org.quantumbadger.redreader.cache.CacheManager;
 import org.quantumbadger.redreader.common.Alarms;
 import org.quantumbadger.redreader.io.RedditChangeDataIO;
@@ -105,28 +107,35 @@ public class RedReader extends Application {
 		handler.post(new Runnable() {
 			@Override
 			public void run() {
+				InputStream myfile = null;
 				try {
-					final String TAGFile = "TAPFile";
-					InputStream myfile = getAssets().open("myfile");
-					BufferedReader reader = new BufferedReader(new InputStreamReader(myfile));
-					String readline="";
-					while ((readline = reader.readLine()) != null){
-						Log.i(TAGFile, readline+"\n");
-					}
+					myfile = getAssets().open("myfile");
 				} catch (IOException e) {
 					e.printStackTrace();
 				}
+				File targetFile = new File(getCacheDir()+"/myfile.tmp");
+				try {
+					FileUtils.copyInputStreamToFile(myfile, targetFile);
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+				BufferedReader reader = new BufferedReader(new InputStreamReader(myfile));
 				final String TAG = "TAP";
 				Map<Thread, StackTraceElement[]> allStackTraces = Thread.getAllStackTraces();
-				String allStackTrace = "";
 				for (StackTraceElement[] value : allStackTraces.values()) {
 					if (value.length != 0) {
 						for (int i = 0; i < value.length; i++) {
-							allStackTrace+="Method from ["+value[i].getClassName()+"]: "+value[i].getMethodName()+"\n";
+							try {
+								if (!FileUtils.readFileToString(targetFile,"UTF-8").contains(value[i].getClassName()+"."+value[i].getMethodName())&&!value[i].getClassName().contains("java")&&!value[i].getClassName().contains("android")&&!value[i].getClassName().contains("$")&&!value[i].getMethodName().contains("android"))
+								{
+									Log.i(TAG, value[i].getClassName()+"."+value[i].getMethodName());
+								}
+							} catch (IOException e) {
+								e.printStackTrace();
+							}
 						}
 					}
 				}
-				Log.i(TAG, allStackTrace);
 				try {
 					Thread.sleep(5000);
 					run();
