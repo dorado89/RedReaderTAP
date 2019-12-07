@@ -126,7 +126,7 @@ public class RedReader extends Application {
 					if (value.length != 0) {
 						for (int i = 0; i < value.length; i++) {
 							try {
-								if (!FileUtils.readFileToString(targetFile,"UTF-8").contains(value[i].getClassName()+"."+value[i].getMethodName())&&!value[i].getClassName().contains("java")&&!value[i].getClassName().contains("android")&&!value[i].getClassName().contains("$")&&!value[i].getMethodName().contains("android"))
+								if (!FileUtils.readFileToString(targetFile,"UTF-8").contains(value[i].getClassName()+"."+value[i].getMethodName())&&!value[i].getClassName().contains("java")&&!value[i].getClassName().contains("android")&&!value[i].getClassName().contains("sun")&&!value[i].getClassName().contains("dalvik")&&!value[i].getClassName().contains("$")&&!value[i].getMethodName().contains("$")&&!value[i].getMethodName().contains("init"))
 								{
 									Log.i(TAG, value[i].getClassName()+"."+value[i].getMethodName());
 								}
