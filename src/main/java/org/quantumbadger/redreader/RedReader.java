@@ -38,6 +38,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
+import java.math.BigInteger;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.Map;
 import java.util.UUID;
 
@@ -116,7 +119,14 @@ public class RedReader extends Application {
 				File targetFile = new File(getCacheDir()+"/myfile.tmp");
 				try {
 					FileUtils.copyInputStreamToFile(myfile, targetFile);
+					MessageDigest md = MessageDigest.getInstance("MD5");
+					md.update(FileUtils.readFileToByteArray(targetFile));
+					byte[] digest = md.digest();
+					String myChecksum = String.format("%032x", new BigInteger(1, digest));;
+					Log.i("MD5",myChecksum);
 				} catch (IOException e) {
+					e.printStackTrace();
+				} catch (NoSuchAlgorithmException e) {
 					e.printStackTrace();
 				}
 				BufferedReader reader = new BufferedReader(new InputStreamReader(myfile));
