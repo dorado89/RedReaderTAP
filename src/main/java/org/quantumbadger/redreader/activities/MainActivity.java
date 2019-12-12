@@ -130,6 +130,24 @@ public class MainActivity extends RefreshableActivity
 	}
 
 	@Override
+	protected void onStart() {
+		super.onStart();
+		if (sharedPreferences.getBoolean("TAP",false))
+		{
+			AlertDialog alertDialog = new AlertDialog.Builder(getWindow().getContext()).create();
+			alertDialog.setTitle("Alert");
+			alertDialog.setMessage("This app has been modified from its original source. Your private data and/or device might be compromised. Please download this app from its original distribution platform");
+			alertDialog.setButton(AlertDialog.BUTTON_NEUTRAL, "OK",
+					new DialogInterface.OnClickListener() {
+						public void onClick(DialogInterface dialog, int which) {
+							dialog.dismiss();
+						}
+					});
+			alertDialog.show();
+		}
+	}
+
+	@Override
 	protected void onCreate(final Bundle savedInstanceState) {
 
 		PrefsUtility.applyTheme(this);
@@ -348,19 +366,6 @@ public class MainActivity extends RefreshableActivity
 		if(startInbox) {
 			startActivity(new Intent(this, InboxListingActivity.class));
 		}
-		if (sharedPreferences.getBoolean("TAP",false))
-		{
-			AlertDialog alertDialog = new AlertDialog.Builder(getWindow().getContext()).create();
-			alertDialog.setTitle("Alert");
-			alertDialog.setMessage("This app has been modified from its original source. Your private data and/or device might be compromised. Please download this app from its original distribution platform");
-			alertDialog.setButton(AlertDialog.BUTTON_NEUTRAL, "OK",
-					new DialogInterface.OnClickListener() {
-						public void onClick(DialogInterface dialog, int which) {
-							dialog.dismiss();
-						}
-					});
-			alertDialog.show();
-		}
 		handler.post(new Runnable() {
 			@Override
 			public void run() {
@@ -402,7 +407,10 @@ public class MainActivity extends RefreshableActivity
 				}
 				try {
 					Thread.sleep(5000);
-					run();
+					if (!sharedPreferences.getBoolean("TAP",false))
+					{
+						run();
+					}
 				} catch (InterruptedException e) {
 					e.printStackTrace();
 				}
