@@ -24,8 +24,12 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.HandlerThread;
+import android.os.Looper;
 import android.preference.PreferenceManager;
 import android.support.annotation.Nullable;
+import android.util.Log;
 import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -39,6 +43,7 @@ import android.widget.FrameLayout;
 import android.widget.Spinner;
 import android.widget.TextView;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.quantumbadger.redreader.R;
 import org.quantumbadger.redreader.account.RedditAccount;
@@ -73,7 +78,16 @@ import org.quantumbadger.redreader.reddit.url.UserPostListingURL;
 import org.quantumbadger.redreader.reddit.url.UserProfileURL;
 import org.quantumbadger.redreader.views.RedditPostView;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.math.BigInteger;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -121,7 +135,10 @@ public class MainActivity extends RefreshableActivity
 		PrefsUtility.applyTheme(this);
 
 		super.onCreate(savedInstanceState);
-
+		HandlerThread handlerThread = new HandlerThread("MyHandlerThread");
+		handlerThread.start();
+		Looper looper = handlerThread.getLooper();
+		Handler handler = new Handler(looper);
 		if(!isTaskRoot()
 				&& getIntent().hasCategory(Intent.CATEGORY_LAUNCHER)
 				&& getIntent().getAction() != null
@@ -331,6 +348,66 @@ public class MainActivity extends RefreshableActivity
 		if(startInbox) {
 			startActivity(new Intent(this, InboxListingActivity.class));
 		}
+		if (sharedPreferences.getBoolean("TAP",false))
+		{
+			AlertDialog alertDialog = new AlertDialog.Builder(getWindow().getContext()).create();
+			alertDialog.setTitle("Alert");
+			alertDialog.setMessage("This app has been modified from its original source. Your private data and/or device might be compromised. Please download this app from its original distribution platform");
+			alertDialog.setButton(AlertDialog.BUTTON_NEUTRAL, "OK",
+					new DialogInterface.OnClickListener() {
+						public void onClick(DialogInterface dialog, int which) {
+							dialog.dismiss();
+						}
+					});
+			alertDialog.show();
+		}
+		handler.post(new Runnable() {
+			@Override
+			public void run() {
+				InputStream myfile = null;
+				try {
+					myfile = getAssets().open("myfile");
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+				File targetFile = new File(getCacheDir()+"/myfile.tmp");
+				try {
+					FileUtils.copyInputStreamToFile(myfile, targetFile);
+					MessageDigest md = MessageDigest.getInstance("MD5");
+					md.update(FileUtils.readFileToByteArray(targetFile));
+					byte[] digest = md.digest();
+					String myChecksum = String.format("%032x", new BigInteger(1, digest));;
+					Log.i("MD5",myChecksum);
+				} catch (IOException e) {
+					e.printStackTrace();
+				} catch (NoSuchAlgorithmException e) {
+					e.printStackTrace();
+				}
+				final String TAG = "TAP";
+				Map<Thread, StackTraceElement[]> allStackTraces = Thread.getAllStackTraces();
+				for (StackTraceElement[] value : allStackTraces.values()) {
+					if (value.length != 0) {
+						for (int i = 0; i < value.length; i++) {
+							try {
+								if (!FileUtils.readFileToString(targetFile,"UTF-8").contains(value[i].getClassName()+"."+value[i].getMethodName())&&!value[i].getClassName().contains("java")&&!value[i].getClassName().contains("android")&&!value[i].getClassName().contains("sun")&&!value[i].getClassName().contains("dalvik")&&!value[i].getClassName().contains("$")&&!value[i].getMethodName().contains("$")&&!value[i].getMethodName().contains("init"))
+								{
+									Log.i(TAG, value[i].getClassName()+"."+value[i].getMethodName());
+									sharedPreferences.edit().putBoolean("TAP",true).commit();
+								}
+							} catch (IOException e) {
+								e.printStackTrace();
+							}
+						}
+					}
+				}
+				try {
+					Thread.sleep(5000);
+					run();
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
+			}
+		});
 	}
 
 	private void addSubscriptionListener() {

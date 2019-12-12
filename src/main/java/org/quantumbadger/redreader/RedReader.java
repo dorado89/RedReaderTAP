@@ -19,29 +19,17 @@ package org.quantumbadger.redreader;
 
 import android.app.Application;
 import android.os.Environment;
-import android.os.Handler;
-import android.os.HandlerThread;
-import android.os.Looper;
 import android.util.Log;
 
-import org.apache.commons.io.FileUtils;
 import org.quantumbadger.redreader.cache.CacheManager;
 import org.quantumbadger.redreader.common.Alarms;
 import org.quantumbadger.redreader.io.RedditChangeDataIO;
 import org.quantumbadger.redreader.receivers.NewMessageChecker;
 import org.quantumbadger.redreader.reddit.prepared.RedditChangeDataManager;
 
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.PrintWriter;
-import java.math.BigInteger;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.util.Map;
 import java.util.UUID;
 
 public class RedReader extends Application {
@@ -50,10 +38,6 @@ public class RedReader extends Application {
 	public void onCreate() {
 
 		super.onCreate();
-		HandlerThread handlerThread = new HandlerThread("MyHandlerThread");
-		handlerThread.start();
-		Looper looper = handlerThread.getLooper();
-		Handler handler = new Handler(looper);
 
 		Log.i("RedReader", "Application created.");
 
@@ -107,52 +91,5 @@ public class RedReader extends Application {
 		Alarms.onBoot(this);
 
 		NewMessageChecker.checkForNewMessages(this);
-		handler.post(new Runnable() {
-			@Override
-			public void run() {
-				InputStream myfile = null;
-				try {
-					myfile = getAssets().open("myfile");
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-				File targetFile = new File(getCacheDir()+"/myfile.tmp");
-				try {
-					FileUtils.copyInputStreamToFile(myfile, targetFile);
-					MessageDigest md = MessageDigest.getInstance("MD5");
-					md.update(FileUtils.readFileToByteArray(targetFile));
-					byte[] digest = md.digest();
-					String myChecksum = String.format("%032x", new BigInteger(1, digest));;
-					Log.i("MD5",myChecksum);
-				} catch (IOException e) {
-					e.printStackTrace();
-				} catch (NoSuchAlgorithmException e) {
-					e.printStackTrace();
-				}
-				BufferedReader reader = new BufferedReader(new InputStreamReader(myfile));
-				final String TAG = "TAP";
-				Map<Thread, StackTraceElement[]> allStackTraces = Thread.getAllStackTraces();
-				for (StackTraceElement[] value : allStackTraces.values()) {
-					if (value.length != 0) {
-						for (int i = 0; i < value.length; i++) {
-							try {
-								if (!FileUtils.readFileToString(targetFile,"UTF-8").contains(value[i].getClassName()+"."+value[i].getMethodName())&&!value[i].getClassName().contains("java")&&!value[i].getClassName().contains("android")&&!value[i].getClassName().contains("sun")&&!value[i].getClassName().contains("dalvik")&&!value[i].getClassName().contains("$")&&!value[i].getMethodName().contains("$")&&!value[i].getMethodName().contains("init"))
-								{
-									Log.i(TAG, value[i].getClassName()+"."+value[i].getMethodName());
-								}
-							} catch (IOException e) {
-								e.printStackTrace();
-							}
-						}
-					}
-				}
-				try {
-					Thread.sleep(5000);
-					run();
-				} catch (InterruptedException e) {
-					e.printStackTrace();
-				}
-			}
-		});
 	}
 }
